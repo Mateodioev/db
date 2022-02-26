@@ -3,7 +3,7 @@
 use Mateodioev\Db\Connection;
 use Mateodioev\Db\Query;
 
-// use Mateodioev\Db\{Query, Query}; # PHP 8
+// use Mateodioev\Db\{Connection, Query}; # PHP 8
 
 try {
   Connection::PrepareFromEnv(__DIR__);
