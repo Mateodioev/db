@@ -1,0 +1,20 @@
+{
+    "name": "neto/db",
+    "description": "Easy sql-db connection",
+    "type": "library",
+    "require": {
+        "vlucas/phpdotenv": "^5.4"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Mateodioev\\Db\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mateodioev"
+        }
+    ],
+    "minimum-stability": "stable"
+}

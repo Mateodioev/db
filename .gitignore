@@ -1,0 +1,7 @@
+/vendor
+/tests
+
+composer.lock
+composer.phar
+
+.env
