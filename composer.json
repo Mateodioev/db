@@ -1,5 +1,5 @@
 {
-    "name": "neto/db",
+    "name": "mateodioev/db",
     "description": "Easy sql-db connection",
     "type": "library",
     "require": {
