@@ -1,11 +1,11 @@
 {
     "name": "mateodioev/db",
     "description": "Easy sql-db connection",
-    "type": "library",
+    "keywords": ["sql", "db", "mysql"],
+    "license": "MIT",
     "require": {
         "vlucas/phpdotenv": "^5.4"
     },
-    "license": "MIT",
     "autoload": {
         "psr-4": {
             "Mateodioev\\Db\\": "src/"
@@ -15,6 +15,5 @@
         {
             "name": "Mateodioev"
         }
-    ],
-    "minimum-stability": "stable"
+    ]
 }
