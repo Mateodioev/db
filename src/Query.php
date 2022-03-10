@@ -123,7 +123,7 @@ class Query
    */
   public function Clear(): void
   {
-    $this->last_ping = null;
+    $this->last_ping = 0.0;
     $this->instance = null;
     $this->afectRows = null;
     $this->query = null;
