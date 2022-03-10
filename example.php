@@ -14,6 +14,7 @@ try {
   var_dump($db->GetAll('SELECT :nums', ['nums' => '1+2+3']));
   var_dump($db->Ping()); // Verify if the connection is still alive
 
+  $db->Close();
   var_dump($db);
   
 } catch (Exception $e) {
