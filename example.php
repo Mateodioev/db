@@ -3,7 +3,7 @@
 use Mateodioev\Db\Connection;
 use Mateodioev\Db\Query;
 
-// use Mateodioev\Db\{Query, Query}; # PHP 8
+// use Mateodioev\Db\{Connection, Query}; # PHP 8
 
 // Connection::Prepare('host', 'port', 'dbname', 'user', 'pass');
 try {
@@ -15,6 +15,7 @@ try {
   var_dump($db->Ping()); // Verify if the connection is still alive
 
   var_dump($db);
+  
 } catch (Exception $e) {
   die($e->getMessage());
 }
