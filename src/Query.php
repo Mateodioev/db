@@ -117,4 +117,31 @@ class Query
       throw new Exception("SQL error trying to ping the server: " . $e->getMessage());
     }
   }
+
+  /**
+   * Clear the query and result datas
+   */
+  public function Clear(): void
+  {
+    $this->last_ping = null;
+    $this->instance = null;
+    $this->afectRows = null;
+    $this->query = null;
+    $this->datas = null;
+  }
+
+  /**
+   * Close connection and clear datas
+   */
+  public function Close(): void
+  {
+    $this->Clear();
+    $this->db = null;
+    Connection::$dsn = null;
+  }
+
+  public function __destruct()
+  {
+    $this->Close();
+  }
 }
