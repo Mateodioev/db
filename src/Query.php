@@ -2,6 +2,7 @@
 
 namespace Mateodioev\Db;
 
+use Exception;
 use Mateodioev\Db\Connection;
 use PDOException;
 use PDO;
@@ -17,6 +18,7 @@ class Query
 
   private $query;
   private $datas;
+  private float $last_ping = 0.0; // Ping function
 
   /**
    * Set data to use in the query
@@ -47,6 +49,7 @@ class Query
       }
       $this->afectRows = $this->instance->rowCount();
 
+      $this->last_ping = microtime(true); // For ping
     } catch (PDOException $e) {
       throw new \Exception("SQL Error: " . $e->getMessage());
     }
@@ -96,4 +99,22 @@ class Query
     ];
   }
 
+  /**
+   * Verify if the connection is still alive
+   * @throws Exception
+   */
+  public function Ping($last = 2)
+  {
+    try {
+      if ($this->instance == null) return false;
+      if (microtime(true) - $this->last_ping > $last) {
+        $this->Exec('SELECT 1');
+        $this->last_ping = microtime(true);
+        return $this->afectRows > 0;
+      }
+      return true;
+    } catch (Exception $e) {
+      throw new Exception("SQL error trying to ping the server: " . $e->getMessage());
+    }
+  }
 }

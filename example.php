@@ -5,25 +5,16 @@ use Mateodioev\Db\Query;
 
 // use Mateodioev\Db\{Query, Query}; # PHP 8
 
+// Connection::Prepare('host', 'port', 'dbname', 'user', 'pass');
 try {
-  Connection::PrepareFromEnv(__DIR__);
-  $db = new Query();
-  $res = $db->Exec('SELECT * FROM users');
-  print_r($res);
+  Connection::PrepareFromEnv(__DIR__); # Load from .env file
+  $db = new Query;
 
-} catch (\Exception $e) {
-  
-  die($e->getMessage());
-}
+  var_dump($db->Exec('SELECT 1+2+3'));
+  var_dump($db->GetAll('SELECT :nums', ['nums' => '1+2+3']));
+  var_dump($db->Ping()); // Verify if the connection is still alive
 
-
-try {
-  Connection::PrepareFromEnv(__DIR__);
-  $db = new Query();
-  $res = $db->GetAll('SELECT * FROM users WHERE role = :role', ['role' => 'admin']);
-  print_r($res);
-
-} catch (\Exception $e) {
-  
+  var_dump($db);
+} catch (Exception $e) {
   die($e->getMessage());
 }
