@@ -49,6 +49,20 @@ class Query
   }
 
   /**
+   * Set params to instance
+   */
+  private function SetParams()
+  {
+    if ($this->datas == null || empty($this->datas)) {
+      return;
+    } else {
+      for ($i=0; $i < count($this->datas); $i++) { 
+        $this->instance->bindParam($i+1, $this->datas[$i], $this->getDataType($this->datas[$i]));
+      }
+    }
+  }
+
+  /**
    * Execute sql query
    */
   private function ExecuteQuery(): void
@@ -57,10 +71,7 @@ class Query
     
     try {
       $this->instance = $this->db->prepare($this->query);
-
-      for ($i=0; $i < count($this->datas); $i++) { 
-        $this->instance->bindParam($i+1, $this->datas[$i], $this->getDataType($this->datas[$i]));
-      }
+      $this->SetParams();
       $this->instance->execute();
       
       $this->afectRows = $this->instance->rowCount();
