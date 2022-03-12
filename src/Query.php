@@ -55,10 +55,10 @@ class Query
   {
     if ($this->datas == null || empty($this->datas)) {
       return;
-    } else {
-      for ($i=0; $i < count($this->datas); $i++) { 
-        $this->instance->bindParam($i+1, $this->datas[$i], $this->getDataType($this->datas[$i]));
-      }
+    }
+    foreach ($this->datas as $i => $item) {
+      if (is_int($i)) $i = $i + 1;
+      $this->instance->bindParam($i, $item, $this->getDataType($item));
     }
   }
 
