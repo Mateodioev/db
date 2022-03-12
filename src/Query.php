@@ -17,8 +17,24 @@ class Query
   private $db;
 
   private $query;
-  private $datas;
+  private $datas = [];
   private float $last_ping = 0.0; // Ping function
+
+  /**
+   * Returns the data type of a parameter
+   */
+  private function getDataType($data)
+  {
+    if (is_int($data)) {
+      return PDO::PARAM_INT;
+    } elseif (is_bool($data)) {
+      return PDO::PARAM_BOOL;
+    } elseif (is_null($data)) {
+      return PDO::PARAM_NULL;
+    } else {
+      return PDO::PARAM_STR;
+    }
+  }
 
   /**
    * Set data to use in the query
@@ -26,7 +42,7 @@ class Query
    * @param array $datas
    * @param string $query SQL query
    */
-  private function SetQuery(string $query, $datas=''): void
+  private function SetQuery(string $query, array $datas=null): void
   {
     $this->query = $query;
     $this->datas = $datas;
@@ -42,11 +58,11 @@ class Query
     try {
       $this->instance = $this->db->prepare($this->query);
 
-      if (empty($this->datas)) {
-        $this->instance->execute();
-      } else {
-        $this->instance->execute($this->datas);
+      for ($i=0; $i < count($this->datas); $i++) { 
+        $this->instance->bindParam($i+1, $this->datas[$i], $this->getDataType($this->datas[$i]));
       }
+      $this->instance->execute();
+      
       $this->afectRows = $this->instance->rowCount();
 
       $this->last_ping = microtime(true); // For ping
@@ -61,7 +77,7 @@ class Query
    * @param string $query SQL query
    * @param array $datas Params to use in the query
    */
-  public function Exec(string $query, $datas=''): array
+  public function Exec(string $query, array $datas=null): array
   {
     $this->SetQuery($query, $datas);
 
@@ -80,7 +96,7 @@ class Query
    * @param string $query SQL query
    * @param array $datas Params to use in the query
    */
-  public function GetAll(string $query, $datas=''): array
+  public function GetAll(string $query, array $datas=null): array
   {
     $this->SetQuery($query, $datas);
     $responses = [];
