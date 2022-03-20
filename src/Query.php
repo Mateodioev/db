@@ -58,9 +58,9 @@ class Query
     }
     foreach ($this->datas as $i => $item) {
       if (is_int($i)) {
-        $this->instance->bindParam($i+1, $item, $this->getDataType($item));
+        $this->instance->bindValue($i+1, $item, $this->getDataType($item));
       } else {
-        $this->instance->bindParam($i, $item, $this->getDataType($item));
+        $this->instance->bindValue($i, $item, $this->getDataType($item));
       }
     }
   }
