@@ -57,7 +57,7 @@ class Query
       return;
     }
     foreach ($this->datas as $i => $item) {
-      if (is_int($i) && $i > 0) {
+      if (is_int($i)) {
         $i++;
       }
       $this->instance->bindParam($i, $item, $this->getDataType($item));
