@@ -51,9 +51,11 @@ class Connection
    */
   public static function PrepareFromEnv(string $dir = __DIR__):void
   {
-    $dir = $dir ?? __DIR__;
-    $dotenv = \Dotenv\Dotenv::createImmutable($dir);
-    $dotenv->load();
+    if (!isset($_ENV['DB_HOST']) || empty($_ENV['DB_HOST'])) {
+      $dir = $dir ?? __DIR__;
+      $dotenv = \Dotenv\Dotenv::createImmutable($dir);
+      $dotenv->load();
+    }
 
     self::Prepare($_ENV['DB_HOST'], $_ENV['DB_PORT'], $_ENV['DB_NAME'], $_ENV['DB_USER'], $_ENV['DB_PASS']);
   }
@@ -61,13 +63,16 @@ class Connection
   /**
    * Get PDO connection, die in case of fail to conect to db
    */
-  public static function GetConnection(array $opt = [PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_PERSISTENT => true])
+  public static function GetConnection(array $opt = [
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_EMULATE_PREPARES => false,
+    ])
   {
     try {
-        if (self::$dsn == null) {
-          self::$dsn = new PDO(self::$host, self::$user, self::$password, $opt);
-          self::$dsn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        }
+      if (self::$dsn == null) {
+        self::$dsn = new PDO(self::$host, self::$user, self::$password, $opt);
+      }
       return self::$dsn;
     } catch (\PDOException $e) {
       throw new \Exception("Fail to connect to database: " . $e->getMessage());
