@@ -1,4 +1,5 @@
 # Easy sql-connection
+[![CodeFactor](https://www.codefactor.io/repository/github/mateodioev/db/badge)](https://www.codefactor.io/repository/github/mateodioev/db)
 
 ## Installation
 
