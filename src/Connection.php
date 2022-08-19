@@ -30,6 +30,16 @@ class Connection
   }
 
   /**
+   * Set connection charset
+   * 
+   * @see https://dev.mysql.com/doc/refman/8.0/en/charset-charsets.html
+   */
+  public static function addCharset(string $charset = 'utf8mb4'): void
+  {
+    self::$host .= ';charset=' . $charset;
+  }
+  
+  /**
    * Prepare data to connect to database
    *
    * @param string $ip DB_HOST IP or hostname of the database server
