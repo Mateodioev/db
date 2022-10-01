@@ -2,90 +2,162 @@
 
 namespace Mateodioev\Db;
 
-use \PDO;
+use Dotenv\Dotenv;
+use Dotenv\Exception\InvalidPathException;
+use Mateodioev\Utils\Files;
+use PDO;
+use PDOException;
 
+use function realpath;
+
+/**
+ * @method static fromFile()
+ * @method static fromEnv()
+ * @method static createDSN()
+ * @method static getInstance()
+ * @method public addOptions()
+ * @method public connect()
+ */
 class Connection
 {
-  
-  private static $host = '';
-  private static $user = '';
-  private static $password = '';
-  private static $hostFrom = '';
+  public static ?PDO $connection = null;
+
+  private string $dsn, $username, $password;
+
+  private array $options = [
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+  ];
 
   /**
-   * PDO connection
-   */
-  public static $dsn;
-
-  /**
-   * @param string $host DB_HOST - Db host
-   * @param string $user DB_USER Db - username
-   * @param string $pass DB_PASSWORD - Db password
-   */
-  private static function From(string $host, string $user, string $pass):void
-  {
-    self::$host = $host;
-    self::$user = $user;
-    self::$password = $pass;
-  }
-
-  /**
-   * Set connection charset
-   * 
-   * @see https://dev.mysql.com/doc/refman/8.0/en/charset-charsets.html
-   */
-  public static function addCharset(string $charset = 'utf8mb4'): void
-  {
-    self::$host .= ';charset=' . $charset;
-  }
-  
-  /**
-   * Prepare data to connect to database
+   * Create connection to the database
    *
-   * @param string $ip DB_HOST IP or hostname of the database server
-   * @param string $port DB_PORT
-   * @param string $dbname DB_NAME
-   * @param string $user DB_USER
-   * @param string $pass DB_PASS
+   * @param string $dsn The Data Source Name
+   * @param string $user The user name for the DSN string.
+   * @param string $pass The password for the DSN string.
    */
-  public static function Prepare(string $ip, string $port, string $dbname, string $user, string $pass)
-  {
-    self::$hostFrom = 'mysql:host=' . $ip . ';port=' . $port . ';dbname=' . $dbname;
-    self::From(self::$hostFrom, $user, $pass);
+  public function __construct(string $dsn, string $user, string $pass) {
+    $this->dsn = $dsn;
+    $this->username = $user;
+    $this->password = $pass;
   }
 
   /**
-   * Prepare data to connect to database from .env file
-   * 
-   * @param string $dir path to .env file
+   * Create new connection from file
+   *
+   * @param string $file Path to the file containing the DSN string
+   * @param string $user The user name for the DSN string.
+   * @param string $pass The password for the DSN string.
    */
-  public static function PrepareFromEnv(string $dir = __DIR__):void
+  public static function fromFile(string $file, string $user, string $pass): Connection
   {
-    if (!isset($_ENV['DB_HOST']) || empty($_ENV['DB_HOST'])) {
-      $dir = $dir ?? __DIR__;
-      $dotenv = \Dotenv\Dotenv::createImmutable($dir);
-      $dotenv->load();
+    $realFile = realpath($file);
+
+    if (!Files::isFile($file)) {
+      throw new DbException(sprintf('File "%s" does not exist', $file));
     }
 
-    self::Prepare($_ENV['DB_HOST'], $_ENV['DB_PORT'], $_ENV['DB_NAME'], $_ENV['DB_USER'], $_ENV['DB_PASS']);
+    $dsn = 'uri:file://' . $realFile;
+    return new Connection($dsn, $user, $pass);
   }
 
   /**
-   * Get PDO connection, die in case of fail to conect to db
+   * Creat connection from .env file
+   * @throws DbException
    */
-  public static function GetConnection(array $opt = [
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_EMULATE_PREPARES => false,
-    ])
+  public static function fromEnv(string $dirEnv = __DIR__): Connection
   {
     try {
-      if (self::$dsn == null) {
-        self::$dsn = new PDO(self::$host, self::$user, self::$password, $opt);
-      }
-      return self::$dsn;
-    } catch (\PDOException $e) {
-      throw new \Exception("Fail to connect to database: " . $e->getMessage());
+      if (!isset($_ENV['DB_HOST'])) Dotenv::createImmutable($dirEnv)->load();
+    } catch (InvalidPathException $e) {
+      throw new DbException('Invalid path specified', previous: $e);
     }
+
+    if (isset($_ENV['DB_DSN_FILE'])) {
+      return self::fromFile($_ENV['DB_DSN_FILE'], $_ENV['DB_USER'], $_ENV['DB_PASS']);
+    } else {
+      $port    = $_ENV['DB_PORT'] ?? 3306;
+      $charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
+      $soquet  = $_ENV['DB_SOQUET'] ?? null;
+      $driver  = $_ENV['DB_DRIVER'] ?? 'mysql';
+
+      $dsn = self::createDSN($_ENV['DB_HOST'], $_ENV['DB_NAME'], $port, $charset, $soquet, $driver);
+      return new Connection($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS']);
+    }
+  }
+
+  /**
+   * Create _Data Source Name_ string
+   * @throws DbException
+   */
+  public static function createDSN(string $host, string $dbName, int $port = 3306, string $charset = 'utf8mb4', ?string $unixSoquet = null, string $driver = 'mysql')
+  {
+    if (!in_array($driver, PDO::getAvailableDrivers())) {
+      throw new DbException('Invalid driver specified');
+    }
+
+    $dsn = $driver . ':dbname=' . $dbName . ';charset=' . $charset;
+
+    if ($unixSoquet) {
+      $dsn .= ';unix_socket=' . $unixSoquet;
+    } else {
+      $dsn .= ';host=' . $host . ';port=' . $port;
+    }
+
+    return $dsn;
+  }
+
+  /**
+   * Add atributes to the connection
+   *
+   * @param array $opt
+   */
+  public function addOptions(array $opt): Connection
+  {
+    $this->options = array_merge($this->options, $opt);
+    return $this;
+  }
+
+  /**
+   * Connect to the database
+   */
+  public function connect(): PDO
+  {
+    try {
+      if (self::$connection === null) {
+        self::$connection = new PDO($this->dsn, $this->username, $this->password, $this->options);
+      }
+      return self::$connection;
+    } catch (PDOException $e) {
+      throw new DbException(sprintf('"Fail to connect to database: %s', $e->getMessage()), previous: $e);
+    }
+  }
+
+  public function getQuery(): Query
+  {
+    return new Query($this->dsn, $this->username, $this->password);
+  }
+
+  /**
+   * Return PDO connection
+   * @throws DbException
+   */
+  public static function getInstance(): PDO
+  {
+    if (!static::$connection instanceof PDO) {
+      throw new DbException('First start the connection with method "connect"');  
+    }
+    return static::$connection;
+  }
+
+  public static function setPDO(PDO $con): void
+  {
+    static::$connection = $con;
+  }
+
+  public function __destruct()
+  {
+    self::$connection = null;
   }
 }

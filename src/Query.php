@@ -3,27 +3,56 @@
 namespace Mateodioev\Db;
 
 use Exception;
-use Mateodioev\Db\Connection;
-use PDOException;
 use PDO;
+use PDOException;
+use PDOStatement;
 
-class Query 
+use function is_int, is_bool, is_null;
+
+class Query extends Connection
 {
-  /** Actual query */
-  public $instance;
-  /** Afectt Rows in last query */
-  public $afectRows;
-  /** PDO connection */
-  private $db;
+  /*** Actual query */
+  public ?PDOStatement $instance;
+  public int $afectRows = 0;
 
-  private $query;
-  private $datas = [];
-  private float $last_ping = 0.0; // Ping function
+  private string $query = '';
+  private array $datas = [];
+  private float $lastPing = 0.0;
 
   /**
-   * Returns the data type of a parameter
+   * Execute sql query and return result
    */
-  private function getDataType($data)
+  public function exec(string $query, ?array $data = null): array
+  {
+    $this->setQuery($query, $data)->executeQuery();
+
+    return [
+      'ok'        => $this->afectRows > 0,
+      'afectRows' => $this->afectRows,
+      'data'      => $this->instance->fetch(PDO::FETCH_ASSOC),
+      'obj'       => $this->instance
+    ];
+  }
+
+  public function execAll(string $query, ?array $data = null): array
+  {
+    $this->setQuery($query, $data)->executeQuery();
+    $res = $this->instance->fetchAll(PDO::FETCH_ASSOC);
+
+    $rows = [];
+    foreach ($res as $row) {
+      $rows[] = $row;
+    }
+
+    return [
+      'ok'        => $this->afectRows > 0,
+      'afectRows' => $this->afectRows,
+      'rows'      => $rows,
+      'obj'       => $this->instance
+    ];
+  }
+
+  private static function getDataType(mixed $data): int
   {
     if (is_int($data)) {
       return PDO::PARAM_INT;
@@ -36,142 +65,64 @@ class Query
     }
   }
 
-  /**
-   * Set data to use in the query
-   * 
-   * @param array $datas
-   * @param string $query SQL query
-   */
-  private function SetQuery(string $query, array $datas=null): void
+  private function setQuery(string $query, ?array $data = null): Query
   {
     $this->query = $query;
-    $this->datas = $datas;
+    if ($data) $this->data = $data;
+
+    return $this;
   }
 
-  /**
-   * Set params to instance
-   */
-  private function SetParams()
+  private function setParams(): Query
   {
-    if ($this->datas == null || empty($this->datas)) {
-      return;
+    if (is_null($this->datas) || empty($this->datas)) {
+      return $this;
     }
-    foreach ($this->datas as $i => $item) {
+
+    foreach ($this->datas as $i => $val) {
       if (is_int($i)) {
-        $this->instance->bindValue($i+1, $item, $this->getDataType($item));
+        $this->instance->bindValue($i+1, $val, self::getDataType($val));
       } else {
-        $this->instance->bindValue($i, $item, $this->getDataType($item));
+        $this->instance->bindValue($i, $val, self::getDataType($val));
       }
     }
+    return $this;
   }
 
-  /**
-   * Execute sql query
-   */
-  private function ExecuteQuery(): void
+  private function executeQuery()
   {
-    if ($this->db == null) $this->db = Connection::GetConnection();
-    
+    $db = $this->connect();
+
     try {
-      $this->instance = $this->db->prepare($this->query);
-      $this->SetParams();
-      $this->instance->execute();
-      
+      $this->instance = $db->prepare($this->query);
+      $this->setParams()->instance->execute();
+
       $this->afectRows = $this->instance->rowCount();
-
-      $this->last_ping = microtime(true); // For ping
+      $this->lastPing = microtime(true);
     } catch (PDOException $e) {
-      throw new \Exception("SQL Error: " . $e->getMessage());
+      throw new DbException('SQL error: ' . $e->getMessage(), $e->getCode(), $e);
     }
   }
 
-  /**
-   * Execute sql query and return result
-   * 
-   * @param string $query SQL query
-   * @param array $datas Params to use in the query
-   */
-  public function Exec(string $query, array $datas=null): array
+  public function ping($last = 2)
   {
-    $this->SetQuery($query, $datas);
-
-    $this->ExecuteQuery();
-    return [
-      'ok'       => $this->afectRows > 0,
-      'afectRow' => $this->afectRows,
-      'data'     => $this->instance->fetch(PDO::FETCH_ASSOC),
-      'obj'      => $this->instance
-    ];
-  }
-
-  /**
-   * Get info of all afect rows
-   *
-   * @param string $query SQL query
-   * @param array $datas Params to use in the query
-   */
-  public function GetAll(string $query, array $datas=null): array
-  {
-    $this->SetQuery($query, $datas);
-    $responses = [];
-
-    $this->ExecuteQuery();
-    $rows = $this->instance->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rows as $row) {
-      $responses[] = $row;
-    }
-
-    return [
-      'ok' => $this->afectRows > 0,
-      'afectRow' => $this->afectRows,
-      'rows' => $responses
-    ];
-  }
-
-  /**
-   * Verify if the connection is still alive
-   * @throws Exception
-   */
-  public function Ping($last = 2)
-  {
+    if ($this->instance == null) return false;
     try {
-      if ($this->instance == null) return false;
-      if (microtime(true) - $this->last_ping > $last) {
-        $this->Exec('SELECT 1');
-        $this->last_ping = microtime(true);
+      if (microtime(true) - $this->lastPing > $last) {
+        $this->exec('SELECT 1');
+        $this->lastPing = microtime(true);
         return $this->afectRows > 0;
       }
       return true;
     } catch (Exception $e) {
-      throw new Exception("SQL error trying to ping the server: " . $e->getMessage());
+      throw new DbException("SQL error trying to ping the server: " . $e->getMessage());
     }
-  }
-
-  /**
-   * Clear the query and result datas
-   */
-  public function Clear(): void
-  {
-    $this->last_ping = 0.0;
-    $this->instance = null;
-    $this->afectRows = null;
-    $this->query = null;
-    $this->datas = null;
-  }
-
-  /**
-   * Close connection and clear datas
-   */
-  public function Close(): void
-  {
-    $this->Clear();
-    $this->db = null;
-    Connection::$dsn = null;
   }
 
   public function __destruct()
   {
-    $this->Close();
+    $this->instance = null;
+    $this->query    = '';
+    $this->datas    = [];
   }
 }

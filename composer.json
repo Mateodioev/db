@@ -3,9 +3,6 @@
     "description": "Easy sql-db connection",
     "keywords": ["sql", "db", "mysql"],
     "license": "MIT",
-    "require": {
-        "vlucas/phpdotenv": "^5.4"
-    },
     "autoload": {
         "psr-4": {
             "Mateodioev\\Db\\": "src/"
@@ -15,5 +12,9 @@
         {
             "name": "Mateodioev"
         }
-    ]
+    ],
+    "require": {
+        "mateodioev/utils": "^1.4",
+        "vlucas/phpdotenv": "^5.4"
+    }
 }
