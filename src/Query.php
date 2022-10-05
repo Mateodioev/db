@@ -68,7 +68,7 @@ class Query extends Connection
   private function setQuery(string $query, ?array $data = null): Query
   {
     $this->query = $query;
-    if ($data) $this->data = $data;
+    if ($data) $this->datas = $data;
 
     return $this;
   }
