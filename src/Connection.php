@@ -156,7 +156,7 @@ class Connection
     static::$connection = $con;
   }
 
-  public function __destruct()
+  public function destroy()
   {
     self::$connection = null;
   }
