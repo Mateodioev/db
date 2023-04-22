@@ -96,12 +96,15 @@ class Query
     $this->SetQuery($query, $datas);
 
     $this->ExecuteQuery();
-    return [
+    $result = [
       'ok'       => $this->afectRows > 0,
       'afectRow' => $this->afectRows,
       'data'     => $this->instance->fetch(PDO::FETCH_ASSOC),
       'obj'      => $this->instance
     ];
+
+    $this->instance->closeCursor();
+    return $result;
   }
 
   /**
@@ -122,11 +125,14 @@ class Query
       $responses[] = $row;
     }
 
-    return [
+    $result = [
       'ok' => $this->afectRows > 0,
       'afectRow' => $this->afectRows,
       'rows' => $responses
     ];
+
+    $this->instance->closeCursor();
+    return $result;
   }
 
   /**
